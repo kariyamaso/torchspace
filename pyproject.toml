@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "torchspace"
+version = "0.1.0a1"
+description = "Spatial debugger for PyTorch: architecture, tensor geometry, forward activations and backward gradients in one interactive Three.js scene. Built as a non-invasive extension of torchview."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "TorchSpace project" }]
+keywords = [
+  "pytorch", "visualization", "debugger", "neural-network",
+  "torchview", "three.js", "activations", "gradients", "observability",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Software Development :: Debuggers",
+  "Framework :: Jupyter",
+]
+dependencies = [
+  "torch>=2.0",
+  "torchview>=0.2.6,<0.3",
+]
+
+[project.optional-dependencies]
+# viewing in notebooks needs IPython, which Jupyter/Colab already provide;
+# listed here only for bare-venv completeness
+notebook = ["ipython>=7.0"]
+dev = ["pytest", "playwright", "build"]
+
+[project.urls]
+Documentation = "https://github.com/torchspace/torchspace#readme"
+Source = "https://github.com/torchspace/torchspace"
+Issues = "https://github.com/torchspace/torchspace/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["torchspace"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "torchspace",
+  "README.md",
+  "pyproject.toml",
+  "tests",
+  "build_demo.py",
+  "viewer",
+  "scripts",
+]

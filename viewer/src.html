@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TORCHSPACE_TITLE__ — TorchSpace</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #11151f; --panel2: #161b28; --line: #232a3a;
+    --txt: #d7dce6; --dim: #8a93a6; --acc: #5aa7ff; --warn: #ffb454;
+    --err: #ff6b6b; --ok: #6bd490; --grad: #b48cff;
+    font-size: 13px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #app { display: grid; height: 100%;
+    grid-template-rows: 44px 1fr 64px;
+    grid-template-columns: 260px 1fr 300px;
+    grid-template-areas: "hdr hdr hdr" "left scene right" "tl tl tl"; }
+  header { grid-area: hdr; display: flex; align-items: center; gap: 10px;
+    padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--line);
+    white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+  header::-webkit-scrollbar { display: none; }
+  header .logo { font-weight: 600; letter-spacing: .4px; color: var(--acc); }
+  header .logo span { color: var(--txt); }
+  select, button {
+    background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+  button:hover, select:hover { border-color: var(--acc); }
+  button.active { background: #1d2c45; border-color: var(--acc); color: #cfe4ff; }
+  .tgl { display: inline-flex; align-items: center; gap: 4px; color: var(--dim);
+    cursor: pointer; user-select: none; font-size: 12px; }
+  .tgl input { accent-color: var(--acc); }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 2px; flex: none; }
+
+  #left { grid-area: left; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0; }
+  #right { grid-area: right; background: var(--panel); border-left: 1px solid var(--line);
+    overflow-y: auto; padding: 10px; }
+  #scene-wrap { grid-area: scene; position: relative; min-width: 0; }
+  #scene-wrap canvas { display: block; }
+  #tl { grid-area: tl; background: var(--panel); border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+
+  .ptitle { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--dim); padding: 8px 10px 4px; }
+  #tree { overflow-y: auto; flex: 1; padding: 0 4px 8px; }
+  .tnode { padding: 2px 4px 2px 0; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .tnode:hover { background: #1a2233; }
+  .tnode.sel { background: #1d2c45; }
+  .tnode .karat { width: 14px; text-align: center; color: var(--dim); flex: none; }
+  .tnode .op { color: var(--dim); font-size: 11px; margin-left: 4px; }
+  .tnode .wbadge { background: var(--warn); color: #402800; border-radius: 8px;
+    font-size: 10px; padding: 0 5px; margin-left: 4px; font-weight: 600; }
+  .tnode .ebadge { background: var(--err); color: #3d0e0e; }
+  #diag { max-height: 34%; overflow-y: auto; border-top: 1px solid var(--line); }
+  .dline { padding: 4px 10px; font-size: 11.5px; cursor: pointer; border-left: 3px solid transparent; }
+  .dline:hover { background: #1a2233; }
+  .dline.warning { border-left-color: var(--warn); }
+  .dline.error { border-left-color: var(--err); }
+  .dline.info { border-left-color: var(--acc); }
+  .dline .rule { color: var(--warn); font-weight: 600; }
+  .dline.error .rule { color: var(--err); }
+  .dline.info .rule { color: var(--acc); }
+  .dline .nid { color: var(--dim); }
+  .dline.dfilter { border-left-color: var(--acc); color: var(--dim);
+    position: sticky; top: 0; background: var(--panel); z-index: 2; }
+  .dline.dfilter b { color: var(--txt); }
+  .dline.dfilter .showall { color: var(--acc); text-decoration: underline; cursor: pointer; }
+
+  #insp h2 { font-size: 14px; margin: 4px 0 2px; word-break: break-all; }
+  #insp .sub { color: var(--dim); font-size: 11.5px; margin-bottom: 8px; }
+  table.kv { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+  table.kv td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.kv td:first-child { color: var(--dim); width: 42%; }
+  table.kv td:last-child { font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11.5px; word-break: break-all; }
+  .stat-h { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--dim); margin: 12px 0 2px; }
+  .stat-h.fwd { color: var(--ok); } .stat-h.bwd { color: var(--grad); }
+  .wchip { display: block; background: #2a2113; border: 1px solid #5c4a1e;
+    border-radius: 6px; padding: 5px 8px; margin: 6px 0; font-size: 11.5px; }
+  .wchip.error { background: #2a1313; border-color: #5c1e1e; }
+  .placeholder { color: var(--dim); font-size: 12px; margin-top: 30px; text-align: center; }
+  .attrs { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+    color: var(--txt); background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; margin: 6px 0; word-break: break-all;
+    line-height: 1.6; max-height: 180px; overflow-y: auto; }
+
+  #tl input[type=range] { flex: 1; accent-color: var(--acc); }
+  #tl .phase { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  #tl .phase.forward { background: #12301e; color: var(--ok); }
+  #tl .phase.backward { background: #241436; color: var(--grad); }
+  #tl .phase.idle { background: var(--panel2); color: var(--dim); }
+  #frameinfo { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+    color: var(--dim); min-width: 210px; }
+
+  #legend { position: absolute; left: 10px; bottom: 10px; background: rgba(17,21,31,.85);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 11px;
+    color: var(--dim); pointer-events: none; line-height: 1.7; }
+  #legend b { color: var(--txt); font-weight: 600; }
+  .lg { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    margin-right: 5px; vertical-align: -1px; }
+  #hint { position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--dim);
+    background: rgba(17,21,31,.75); padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+  #axes3d { position: absolute; left: 12px; top: 8px; font-size: 11px; color: var(--dim);
+    background: rgba(17,21,31,.75); padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+  #axes3d b.z1 { color: var(--ok); } #axes3d b.z2 { color: var(--grad); }
+  #tip { position: absolute; display: none; pointer-events: none; z-index: 6;
+    background: rgba(13,17,27,.93); border: 1px solid var(--line); border-radius: 7px;
+    padding: 6px 9px; font-size: 11.5px; line-height: 1.55; max-width: 260px;
+    box-shadow: 0 4px 18px rgba(0,0,0,.5); }
+  input[type=range].zscale { width: 74px; accent-color: var(--acc); }
+</style>
+<!--THREE_INLINE-->
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">Torch<span>Space</span></div>
+    <select id="modelSel"></select>
+    <div class="sep"></div>
+    <label class="tgl"><input type="checkbox" id="mTensor"> Tensor</label>
+    <label class="tgl"><input type="checkbox" id="mAct" checked> Activation +Z</label>
+    <label class="tgl"><input type="checkbox" id="mGrad" checked> Gradient −Z</label>
+    <div class="sep"></div>
+    <label class="tgl"><input type="checkbox" id="mOps"> Show ops</label>
+    <label class="tgl"><input type="checkbox" id="mRoll"> Roll repeated</label>
+    <label class="tgl"><input type="checkbox" id="mLabels" checked> Labels</label>
+    <label class="tgl">±Z scale <input type="range" class="zscale" id="barScale"
+      min="0.4" max="2.5" step="0.1" value="1"></label>
+    <div class="sep"></div>
+    <button id="btnOrtho" title="Top-down architecture view">2D Ortho</button>
+    <button id="btnReset">Reset view</button>
+  </header>
+
+  <div id="left">
+    <div class="ptitle">Model tree</div>
+    <div id="tree"></div>
+    <div class="ptitle" id="diagTitle">Diagnostics</div>
+    <div id="diag"></div>
+  </div>
+
+  <div id="scene-wrap">
+    <div id="axes3d">X·Y architecture &nbsp; <b class="z1">+Z activation</b> &nbsp; <b class="z2">−Z gradient</b></div>
+    <div id="hint">drag rotate · wheel zoom · right-drag pan · hover inspect · click select · dblclick expand/collapse</div>
+    <div id="legend"></div>
+    <div id="tip"></div>
+  </div>
+
+  <div id="right"><div id="insp"><div class="placeholder">Click a node<br>to inspect it</div></div></div>
+
+  <div id="tl">
+    <button id="btnPlay">▶ Replay</button>
+    <span class="phase idle" id="phaseBadge">idle</span>
+    <input type="range" id="timeline" min="0" max="0" value="0" step="1">
+    <span id="frameinfo">—</span>
+  </div>
+</div>
+
+<script>
+/*__TORCHSPACE_DATA__*/
+</script>
+<script>
+"use strict";
+/* ================= TorchSpace PoC viewer =================
+   Reads the TorchSpace IR (schema 0.1.0) and renders the
+   semantic-3D scene: X/Y = architecture, +Z = activation,
+   −Z = gradient. All view logic (granularity, rolling, op
+   visibility) is IR-side-effect-free: the IR is the truth,
+   views are derived. */
+
+const DATA = window.TORCHSPACE_DATA || { models: [] };
+const $ = id => document.getElementById(id);
+/* IR strings are data, not markup: escape before any innerHTML insertion */
+const esc = s => String(s === null || s === undefined ? "" : s)
+  .replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;",
+                               '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- op category palette ---------- */
+const CAT_COLORS = {
+  conv:      0x2fb3a5, linear: 0x4f8ce8, norm: 0x9a7bdc, act: 0xe8a13f,
+  pool:      0x3fa7c9, drop: 0x6b7280, container: 0x39415a, op: 0x5c6784,
+  input:     0x59c98a, output: 0xe36d6d, const: 0x8a93a6, join: 0xd9c04a,
+};
+function opCategory(n) {
+  const s = (n.op || "").toLowerCase();
+  if (n.kind === "input") return "input";
+  if (n.kind === "output") return "output";
+  if (n.kind === "const") return "const";
+  if (n.kind === "op")
+    return ["add","cat","stack","mul","matmul","bmm","einsum"].some(k => s.includes(k)) ? "join" : "op";
+  if (s.includes("conv")) return "conv";
+  if (s.includes("linear") || s.includes("lazy")) return "linear";
+  if (s.includes("norm")) return "norm";
+  if (["relu","gelu","silu","sigmoid","tanh","elu","softmax","hard","mish"].some(k => s.includes(k))) return "act";
+  if (s.includes("pool")) return "pool";
+  if (s.includes("drop")) return "drop";
+  return "op";
+}
+const JOIN_OPS = ["add","cat","stack","mul","matmul","bmm","iadd","einsum"];
+
+/* ---------- per-model prepared state ---------- */
+let IR = null;            // current IR document
+let byId = {};            // node id -> node
+let childrenOf = {};      // module id -> [child node ids] (hierarchy)
+let framesSorted = [];    // frames by seq
+let lastStep = 0;
+let actByNode = {}, gradByNode = {}, warnByNode = {};
+let actRange = null, gradRange = null;
+let expanded = new Set(); // expanded container module ids
+let view = null;          // derived visible graph {nodes, edges, pos}
+let selected = null;
+
+function prepareModel(ir) {
+  IR = ir; byId = {}; childrenOf = {};
+  ir.nodes.forEach(n => { byId[n.id] = n; });
+  ir.nodes.forEach(n => {
+    if (n.parent) (childrenOf[n.parent] = childrenOf[n.parent] || []).push(n.id);
+  });
+  ir.tensorsById = {};
+  (ir.tensors || []).forEach(t => { ir.tensorsById[t.id] = t; });
+
+  framesSorted = (ir.frames || []).slice().sort((a, b) => a.seq - b.seq);
+  lastStep = framesSorted.reduce((m, f) => f.step > m ? f.step : m, 0);
+  actByNode = {}; gradByNode = {};
+  framesSorted.forEach(f => {
+    if (f.step !== lastStep) return;
+    if (f.kind === "activation") actByNode[f.node] = f.stats;
+    if (f.kind === "gradient") {
+      const g = gradByNode[f.node];
+      if (!g || (f.stats.rms || 0) > (g.rms || 0)) gradByNode[f.node] = f.stats;
+    }
+  });
+  /* median-centred log scale with a minimum half-span: a healthy uniform
+     profile reads as mid-height yellow-green bars; only real outliers
+     saturate the scale. */
+  const logs = o => Object.values(o).map(s => s && s.rms > 0 ? Math.log10(s.rms) : null)
+                       .filter(v => v !== null).sort((a, b) => a - b);
+  const rng = v => {
+    if (!v.length) return null;
+    const med = v[Math.floor(v.length / 2)];
+    const p = q => v[Math.min(v.length - 1, Math.floor(q * v.length))];
+    const half = Math.max(1.4, (p(0.98) - p(0.02)) / 2);
+    return { med, half };
+  };
+  actRange = rng(logs(actByNode)); gradRange = rng(logs(gradByNode));
+
+  warnByNode = {};
+  (ir.warnings || []).forEach(w => {
+    if (w.node) (warnByNode[w.node] = warnByNode[w.node] || []).push(w);
+  });
+
+  // default expansion: root + depth<=1 containers stay open
+  expanded = new Set();
+  ir.nodes.forEach(n => {
+    if (n.kind === "module" && !n.is_leaf_module && n.depth <= 1) expanded.add(n.id);
+  });
+}
+
+/* ---------- display-owner resolution ----------
+   Every module is a box unless it is an *expanded* container.
+   Owner(e): outermost non-expanded module ancestor (from root side),
+   else e itself. Ops directly inside expanded containers are shown
+   if `showOps` or they are joins; otherwise contracted through. */
+function ancestorChain(n) {
+  const chain = [];
+  let p = n.parent;
+  while (p) { chain.push(p); p = byId[p] ? byId[p].parent : null; }
+  return chain.reverse();           // root-side first
+}
+function displayOwner(id, showOps) {
+  const n = byId[id];
+  if (!n) return null;
+  if (n.kind === "input" || n.kind === "output" || n.kind === "const") return id;
+  for (const a of ancestorChain(n))
+    if (byId[a] && byId[a].kind === "module" && !expanded.has(a)) return a;
+  if (n.kind === "module") return id;   // leaf box or expanded container itself
+  // op in an expanded context:
+  const isJoin = JOIN_OPS.some(k => (n.op || "").toLowerCase().includes(k));
+  return (showOps || isJoin) ? id : "__CONTRACT__";
+}
+
+/* ---------- visible graph derivation (+ optional rolling) ---------- */
+function deriveView(showOps, roll) {
+  const owner = {}, rawOut = {}, rawIn = {};
+  IR.nodes.forEach(n => { owner[n.id] = displayOwner(n.id, showOps); });
+  IR.edges.forEach(e => {
+    (rawOut[e.source] = rawOut[e.source] || []).push(e);
+    (rawIn[e.target] = rawIn[e.target] || []).push(e);
+  });
+
+  // resolve contracted ops transitively
+  function sinksThrough(id, tensor, seen) {
+    const res = [];
+    (rawOut[id] || []).forEach(e => {
+      const o = owner[e.target];
+      if (o === "__CONTRACT__") {
+        if (!seen.has(e.target)) { seen.add(e.target); res.push(...sinksThrough(e.target, e.tensor, seen)); }
+      } else res.push({ target: o, tensor: e.tensor });
+    });
+    return res;
+  }
+
+  const vEdges = new Map();   // key -> {source,target,tensor,count}
+  IR.edges.forEach(e => {
+    const s = owner[e.source];
+    if (s === "__CONTRACT__") return;               // handled from its sources
+    let sinks;
+    const t0 = owner[e.target];
+    if (t0 === "__CONTRACT__") sinks = sinksThrough(e.target, e.tensor, new Set([e.target]));
+    else sinks = [{ target: t0, tensor: e.tensor }];
+    sinks.forEach(({ target, tensor }) => {
+      if (!target || target === s) return;          // internal edge
+      const k = s + "→" + target + "|" + tensor;
+      const cur = vEdges.get(k);
+      if (cur) cur.count += e.count || 1;
+      else vEdges.set(k, { source: s, target: target, tensor: tensor, count: e.count || 1 });
+    });
+  });
+
+  let vNodeIds = new Set();
+  vEdges.forEach(e => { vNodeIds.add(e.source); vNodeIds.add(e.target); });
+  // include isolated visible modules (no edges at this granularity)
+  IR.nodes.forEach(n => {
+    if (owner[n.id] === n.id && n.kind === "module" && !expanded.has(n.id)) vNodeIds.add(n.id);
+  });
+
+  // rolling: merge repeated units (same unit_key) into the first call
+  let rollMap = null, rollCount = {};
+  let edges = [...vEdges.values()];
+  if (roll) {
+    rollMap = {}; const rep = {};
+    vNodeIds.forEach(id => {
+      const n = byId[id];
+      const key = n.unit_key || id;
+      if (rep[key] === undefined) rep[key] = id;
+      rollMap[id] = rep[key];
+      rollCount[rep[key]] = (rollCount[rep[key]] || 0) + 1;
+    });
+    const m = new Map();
+    edges.forEach(e => {
+      const s = rollMap[e.source], t = rollMap[e.target];
+      if (s === t) return;
+      const k = s + "→" + t + "|" + e.tensor;
+      const cur = m.get(k);
+      if (cur) cur.count += e.count; else m.set(k, { ...e, source: s, target: t });
+    });
+    edges = [...m.values()];
+    vNodeIds = new Set([...vNodeIds].map(id => rollMap[id]));
+  }
+
+  return { nodeIds: [...vNodeIds], edges, owner, rollCount, rollMap };
+}
+
+/* owner resolution that also follows the active roll merge: the id of the
+   mesh that actually displays `id` under the current view settings. */
+function displayNodeFor(id) {
+  let o = displayOwner(id, $("mOps").checked);
+  if (o && o !== "__CONTRACT__" && view && view.rollMap)
+    o = view.rollMap[o] || o;
+  return o;
+}
+
+/* ---------- deterministic layered layout (Sugiyama-lite) ----------
+   rank = longest path from sources; order = 3 barycenter sweeps from a
+   sorted initial order; X centred per rank. Production replaces this
+   with ELK compound layout — see design doc §layout. */
+const RANK_GAP = 3.6, X_GAP = 4.8;
+function layout(v) {
+  const ids = v.nodeIds, idset = new Set(ids);
+  const out = {}, indeg = {};
+  ids.forEach(id => { out[id] = []; indeg[id] = 0; });
+  v.edges.forEach(e => {
+    if (!idset.has(e.source) || !idset.has(e.target)) return;
+    out[e.source].push(e.target); indeg[e.target]++;
+  });
+  // longest-path rank (Kahn order for determinism)
+  const rank = {}, q = ids.filter(id => !indeg[id]).sort();
+  q.forEach(id => rank[id] = 0);
+  const dq = [...q], indegW = { ...indeg };
+  while (dq.length) {
+    const u = dq.shift();
+    out[u].sort().forEach(w => {
+      rank[w] = Math.max(rank[w] || 0, rank[u] + 1);
+      if (--indegW[w] === 0) dq.push(w);
+    });
+  }
+  ids.forEach(id => { if (rank[id] === undefined) rank[id] = 0; });
+  const maxRank = ids.reduce((m, id) => rank[id] > m ? rank[id] : m, 0);
+  const layers = []; for (let r = 0; r <= maxRank; r++) layers.push([]);
+  ids.slice().sort().forEach(id => layers[rank[id]].push(id));
+
+  // barycenter ordering sweeps
+  const pos = {};
+  const idx = {}; layers.forEach(L => L.forEach((id, i) => idx[id] = i));
+  const inn = {}; ids.forEach(id => inn[id] = []);
+  v.edges.forEach(e => { if (idset.has(e.source) && idset.has(e.target)) inn[e.target].push(e.source); });
+  for (let sweep = 0; sweep < 3; sweep++) {
+    const down = sweep % 2 === 0;
+    const seq = down ? layers : [...layers].reverse();
+    seq.forEach(L => {
+      const bary = id => {
+        const nb = down ? inn[id] : out[id];
+        if (!nb.length) return idx[id];
+        return nb.reduce((s, b) => s + idx[b], 0) / nb.length;
+      };
+      L.sort((a, b) => bary(a) - bary(b) || (a < b ? -1 : 1));
+      L.forEach((id, i) => idx[id] = i);
+    });
+  }
+  layers.forEach((L, r) => {
+    L.forEach((id, i) => {
+      pos[id] = { x: (i - (L.length - 1) / 2) * X_GAP, y: -r * RANK_GAP, z: 0 };
+    });
+  });
+  return { pos, rank, maxRank };
+}
+
+/* ---------- three.js scene ---------- */
+let renderer, scene, cameraP, cameraO, camera, controls;
+let gNodes, gEdges, gContainers, gLabels, gActs, gGrads, gTensors, gFx, gRuler, gGrid;
+let nodeMesh = {};                       // display node id -> mesh
+let overlayByNode = {};                  // id -> {act: mesh, grad: mesh}
+let edgeCurves = [];                     // {source, target, curve} for pulses
+let pulses = [];                         // live flow pulses
+let BAR_SCALE = 1;                       // ±Z height multiplier (slider)
+const raycaster = new THREE.Raycaster();
+const wrap = $("scene-wrap");
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  wrap.appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0e14);
+  scene.fog = new THREE.Fog(0x0b0e14, 90, 240);
+  cameraP = new THREE.PerspectiveCamera(46, 1, 0.1, 600);
+  cameraO = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 600);
+  cameraP.up.set(0, 0, 1); cameraO.up.set(0, 1, 0);
+  camera = cameraP;
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x0a0c12, 0.95));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.7);
+  dl.position.set(18, -30, 40); scene.add(dl);
+  [gContainers, gEdges, gTensors, gNodes, gActs, gGrads, gLabels, gFx, gRuler, gGrid] =
+    ["c","e","t","n","a","g","l","f","r","gr"].map(() => { const g = new THREE.Group(); scene.add(g); return g; });
+  onResize(); addEventListener("resize", onResize);
+  controls = new MiniOrbit(renderer.domElement);
+  requestAnimationFrame(tickRender);
+}
+function onResize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h);
+  cameraP.aspect = w / h; cameraP.updateProjectionMatrix();
+  syncOrtho();
+}
+
+/* minimal Z-up orbit control (rotate / pan / zoom) */
+class MiniOrbit {
+  constructor(el) {
+    this.target = new THREE.Vector3();
+    this.r = 60; this.theta = -Math.PI / 2; this.phi = 1.05;
+    this.orthoZoom = 1; this.enabledRotate = true; this.tween = null;
+    let mode = 0, px = 0, py = 0;
+    el.addEventListener("contextmenu", e => e.preventDefault());
+    el.addEventListener("pointerdown", e => {
+      this.tween = null;
+      mode = (e.button === 2 || e.shiftKey) ? 2 : 1; px = e.clientX; py = e.clientY;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener("pointermove", e => {
+      if (!mode) return;
+      const dx = e.clientX - px, dy = e.clientY - py; px = e.clientX; py = e.clientY;
+      if (mode === 1 && this.enabledRotate) {
+        this.theta -= dx * 0.0052;
+        this.phi = Math.min(Math.PI - 0.06, Math.max(0.06, this.phi - dy * 0.0052));
+      } else {
+        const k = (camera === cameraO ? (cameraO.right - cameraO.left) / wrap.clientWidth
+                                      : this.r * 0.0016);
+        const fwd = new THREE.Vector3().subVectors(this.target, camera.position).normalize();
+        const right = new THREE.Vector3().crossVectors(fwd, camera.up).normalize();
+        const upv = new THREE.Vector3().crossVectors(right, fwd).normalize();
+        this.target.addScaledVector(right, -dx * k).addScaledVector(upv, dy * k);
+      }
+      this.apply();
+    });
+    el.addEventListener("pointerup", () => mode = 0);
+    el.addEventListener("wheel", e => {
+      e.preventDefault();
+      this.tween = null;
+      const s = Math.exp(e.deltaY * 0.001);
+      if (camera === cameraO) {
+        this.orthoZoom = Math.min(60, Math.max(0.05, this.orthoZoom * s));
+        syncOrtho();
+      }
+      else this.r = Math.min(400, Math.max(4, this.r * s));
+      this.apply();
+    }, { passive: false });
+  }
+  tweenTo(to, dur = 550) {
+    this.tween = { from: { r: this.r, theta: this.theta, phi: this.phi,
+      tx: this.target.x, ty: this.target.y, tz: this.target.z },
+      to, t0: performance.now(), dur };
+  }
+  update() {
+    if (!this.tween) return;
+    let u = Math.min(1, (performance.now() - this.tween.t0) / this.tween.dur);
+    const s = u * u * (3 - 2 * u), f = this.tween.from, to = this.tween.to;
+    const gv = (k, cur) => to[k] === undefined ? cur : f[k] + (to[k] - f[k]) * s;
+    this.r = gv("r", this.r); this.theta = gv("theta", this.theta); this.phi = gv("phi", this.phi);
+    this.target.set(gv("tx", this.target.x), gv("ty", this.target.y), gv("tz", this.target.z));
+    this.apply();
+    if (u === 1) this.tween = null;
+  }
+  apply() {
+    if (camera === cameraO) {
+      camera.position.set(this.target.x, this.target.y, 200);
+      camera.lookAt(this.target); syncOrtho(); return;
+    }
+    const sp = Math.sin(this.phi), x = this.r * sp * Math.cos(this.theta),
+          y = this.r * sp * Math.sin(this.theta), z = this.r * Math.cos(this.phi);
+    camera.position.set(this.target.x + x, this.target.y + y, this.target.z + z);
+    camera.lookAt(this.target);
+  }
+}
+function syncOrtho() {
+  const w = wrap.clientWidth, h = wrap.clientHeight, a = w / h;
+  const half = 30 * (controls ? controls.orthoZoom : 1);
+  cameraO.left = -half * a; cameraO.right = half * a;
+  cameraO.top = half; cameraO.bottom = -half;
+  cameraO.updateProjectionMatrix();
+}
+
+/* ---------- mesh helpers ---------- */
+const MAT_CACHE = {};
+const SHARED_MATS = new Set();     // cache-owned materials: never disposed
+function matFor(color, opts) {
+  const k = color + JSON.stringify(opts || {});
+  if (!MAT_CACHE[k]) {
+    MAT_CACHE[k] = new THREE.MeshStandardMaterial({
+      color, roughness: 0.55, metalness: 0.12, ...(opts || {}) });
+    SHARED_MATS.add(MAT_CACHE[k]);
+  }
+  return MAT_CACHE[k];
+}
+/* frees GPU resources of an object tree; shared (cached) materials and
+   the textures they own are kept alive. */
+function disposeDeep(root) {
+  root.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material
+               : o.material ? [o.material] : [];
+    mats.forEach(m => {
+      if (SHARED_MATS.has(m)) return;
+      if (m.map) m.map.dispose();
+      m.dispose();
+    });
+  });
+}
+function labelSprite(text, sub, scale = 1, color = "#d7dce6") {
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d");
+  const w = 512, h = sub ? 128 : 80; c.width = w; c.height = h;
+  ctx.font = "600 44px Segoe UI, system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.fillStyle = color;
+  ctx.shadowColor = "rgba(0,0,0,.85)"; ctx.shadowBlur = 10;
+  ctx.fillText(text.length > 22 ? text.slice(0, 21) + "…" : text, w / 2, 50);
+  if (sub) {
+    ctx.font = "400 30px Segoe UI, system-ui, sans-serif";
+    ctx.fillStyle = "#8a93a6"; ctx.fillText(sub, w / 2, 96);
+  }
+  const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+  const m = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const s = new THREE.Sprite(m);
+  s.scale.set(6.4 * scale, (sub ? 1.6 : 1.0) * scale, 1);
+  return s;
+}
+function lerpColor(stops, t) {
+  t = Math.min(1, Math.max(0, t));
+  const n = stops.length - 1, i = Math.min(n - 1, Math.floor(t * n)), f = t * n - i;
+  return new THREE.Color(stops[i]).lerp(new THREE.Color(stops[i + 1]), f);
+}
+/* mid (t=0.5, model median) = healthy green / blue; extremes saturate */
+const ACT_STOPS = [0x24473d, 0x35906a, 0x5ecb92, 0xffd166, 0xff4d4d];
+const GRAD_STOPS = [0x18263f, 0x2d4f80, 0x58a6ff, 0xb48cff, 0xff5c8a];
+</script>
+<script>
+"use strict";
+/* ================= scene construction & interaction ================= */
+const NODE_W = 3.3, NODE_H = 1.35, NODE_D = 0.8;
+
+function clearGroup(g) {
+  while (g.children.length) {
+    const c = g.children[g.children.length - 1];
+    disposeDeep(c);
+    g.remove(c);
+  }
+}
+
+/* aggregate stats for collapsed containers: max-rms descendant leaf */
+function statsFor(id, table) {
+  if (table[id]) return table[id];
+  const n = byId[id];
+  if (!n || n.kind !== "module") return null;
+  let best = null;
+  (childrenOf[id] || []).forEach(c => {
+    const s = statsFor(c, table);
+    if (s && (best === null || (s.rms || 0) > (best.rms || 0))) best = s;
+  });
+  return best;
+}
+function warnsFor(id) {
+  const out = [...(warnByNode[id] || [])];
+  (childrenOf[id] || []).forEach(c => out.push(...warnsFor(c)));
+  return out;
+}
+function normLog(stats, range) {
+  if (!stats || !range || !(stats.rms > 0)) return null;
+  return Math.min(1, Math.max(0,
+    0.5 + (Math.log10(stats.rms) - range.med) / (2 * range.half)));
+}
+
+function rebuildScene() {
+  const showOps = $("mOps").checked, roll = $("mRoll").checked;
+  view = deriveView(showOps, roll);
+  const L = layout(view);
+  view.L = L;
+  [gNodes, gEdges, gContainers, gLabels, gActs, gGrads, gTensors, gFx, gRuler, gGrid]
+    .forEach(clearGroup);
+  nodeMesh = {}; overlayByNode = {}; edgeCurves = []; pulses = [];
+  selRing = null; pulseMesh = null;   // lived in gFx: disposed just above
+
+  /* label thinning for long chains */
+  const nModules = view.nodeIds.filter(id => byId[id].kind === "module").length;
+  const labelEvery = Math.max(1, Math.ceil(nModules / 30));
+
+  /* nodes */
+  view.nodeIds.forEach(id => {
+    const n = byId[id], p = L.pos[id], cat = opCategory(n);
+    let mesh;
+    if (n.kind === "op") {
+      mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.62),
+        matFor(CAT_COLORS[cat]));
+    } else if (n.kind === "input" || n.kind === "const") {
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(0.72, 24, 16),
+        matFor(CAT_COLORS[cat], { emissive: 0x0d2c1b, emissiveIntensity: 0.7 }));
+    } else if (n.kind === "output") {
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(0.72, 24, 16),
+        matFor(CAT_COLORS.output, { emissive: 0x2c0d0d, emissiveIntensity: 0.7 }));
+    } else {
+      const isContainerBox = !n.is_leaf_module;
+      const geo = new THREE.BoxGeometry(NODE_W, NODE_H, NODE_D);
+      mesh = new THREE.Mesh(geo, matFor(CAT_COLORS[isContainerBox ? "container" : cat]));
+      const eg = new THREE.LineSegments(new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0x9fb4d8, transparent: true, opacity: 0.35 }));
+      mesh.add(eg);
+      if (isContainerBox) mesh.scale.set(1.18, 1.25, 1.1);
+    }
+    mesh.position.set(p.x, p.y, p.z);
+    mesh.userData.id = id;
+    gNodes.add(mesh);
+    nodeMesh[id] = mesh;
+
+    /* label */
+    const nm = n.kind === "module" ? (n.name.split(".").slice(-2).join(".") || n.name) : n.op;
+    const sub = n.kind === "module" && n.out_shapes && n.out_shapes[0]
+      ? "[" + n.out_shapes[0].join("×") + "]" +
+        (view.rollCount[id] > 1 ? "  ×" + view.rollCount[id] : "")
+      : (view.rollCount[id] > 1 ? "×" + view.rollCount[id] : null);
+    const wantLabel = n.kind === "op" ? showOps :
+      (n.kind !== "module" || (L.rank[id] % labelEvery === 0) ||
+       (warnByNode[id] && warnByNode[id].length));
+    if (wantLabel) {
+      const sp = labelSprite(nm, sub, n.kind === "op" ? 0.62 : 0.92);
+      sp.position.set(p.x, p.y - (n.kind === "op" ? 1.05 : 1.55), p.z + 0.55);
+      gLabels.add(sp);
+    }
+
+    /* ±Z overlays (modules only) */
+    if (n.kind === "module") {
+      const sa = statsFor(id, actByNode), sg = statsFor(id, gradByNode);
+      const nonfinite = s => s && ((s.nan || 0) + (s.inf || 0)) > 0;
+      /* dead = stats exist but rms is exactly 0: draw a distinct muted
+         stub, never the saturation-end color (that means "large"). */
+      const DEAD_COL = new THREE.Color(0x515f7d);
+      const mkBar = (id, h, col, sign) => {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, h),
+          new THREE.MeshStandardMaterial({ color: col, roughness: 0.4,
+            transparent: true, opacity: 0.92, emissive: col, emissiveIntensity: 0.25 }));
+        bar.position.set(p.x, p.y, sign * (NODE_D / 2 + 0.12 + h / 2));
+        bar.userData.id = id; bar.userData.h0 = h; bar.userData.sign = sign;
+        return bar;
+      };
+      const ta = normLog(sa, actRange);
+      const deadA = sa && !nonfinite(sa) && !(sa.rms > 0);
+      if (ta !== null || nonfinite(sa) || deadA) {
+        const h = deadA ? 0.12 : 0.25 + (ta === null ? 1 : ta) * 3.4;
+        const col = nonfinite(sa) ? new THREE.Color(0xff43e0)
+                  : deadA ? DEAD_COL : lerpColor(ACT_STOPS, ta);
+        const bar = mkBar(id, h, col, +1);
+        gActs.add(bar);
+        (overlayByNode[id] = overlayByNode[id] || {}).act = bar;
+      }
+      const tg = normLog(sg, gradRange);
+      const deadG = sg && !nonfinite(sg) && !(sg.rms > 0);
+      if (tg !== null || nonfinite(sg) || deadG) {
+        const h = deadG ? 0.12 : 0.25 + (tg === null ? 1 : tg) * 3.4;
+        const col = nonfinite(sg) ? new THREE.Color(0xff43e0)
+                  : deadG ? DEAD_COL : lerpColor(GRAD_STOPS, tg === null ? 0.5 : tg);
+        const bar = mkBar(id, h, col, -1);
+        gGrads.add(bar);
+        (overlayByNode[id] = overlayByNode[id] || {}).grad = bar;
+      }
+      /* warning glyph */
+      const ws = roll ? (warnByNode[id] || []) : warnsFor(id);
+      if (ws.length) {
+        const worst = ws.some(w => w.severity === "error") ? "#ff5252" : "#ffb454";
+        const g = labelSprite("⚠", null, 0.7, worst);
+        const bar = overlayByNode[id] && overlayByNode[id].act;
+        const top = bar ? bar.position.z + bar.geometry.parameters.depth / 2 + 0.75 : 2.2;
+        g.position.set(p.x + 0.55, p.y + 0.15, top);
+        gFx.add(g);
+      }
+    }
+  });
+
+  /* edges */
+  const bytesOf = e => (IR.tensorsById[e.tensor] || {}).bytes || 0;
+  let bLo = Infinity, bHi = -Infinity;
+  view.edges.forEach(e => {
+    const b = bytesOf(e);
+    if (b > 0) { if (b < bLo) bLo = b; if (b > bHi) bHi = b; }
+  });
+  const tensorMode = $("mTensor").checked;
+  view.edges.forEach(e => {
+    const a = L.pos[e.source], b = L.pos[e.target];
+    if (!a || !b) return;
+    const src = new THREE.Vector3(a.x, a.y - 0.85, a.z);
+    const dst = new THREE.Vector3(b.x, b.y + 0.95, b.z);
+    const span = Math.abs(a.y - b.y) / RANK_GAP;
+    const lateral = span > 1.4 ? (a.x <= b.x ? 1 : -1) * (1.6 + span * 0.55) : 0;
+    const mid = new THREE.Vector3((src.x + dst.x) / 2 + lateral,
+                                  (src.y + dst.y) / 2, 0.0);
+    const curve = new THREE.QuadraticBezierCurve3(src, mid, dst);
+    edgeCurves.push({ source: e.source, target: e.target, curve });
+    let r = 0.07;
+    if (tensorMode && bytesOf(e) > 0 && bHi > bLo)
+      r = 0.06 + 0.17 * (Math.log2(bytesOf(e)) - Math.log2(bLo)) /
+                 Math.max(1e-9, Math.log2(bHi) - Math.log2(bLo));
+    const isSkip = span > 1.4;
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(6, span * 6 | 0), r, 6),
+      matFor(isSkip ? 0x8fb7e8 : 0x53617f, { roughness: 0.7 }));
+    tube.userData.edge = e; tube.raycast = () => {};
+    gEdges.add(tube);
+    /* arrowhead */
+    const tangent = curve.getTangent(0.98).normalize();
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.5, 10),
+      matFor(isSkip ? 0x8fb7e8 : 0x5a6b8e));
+    cone.position.copy(curve.getPoint(0.985));
+    cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+    cone.raycast = () => {}; gEdges.add(cone);
+
+    /* tensor geometry: normalized cuboid at edge midpoint */
+    if (tensorMode) {
+      const t = IR.tensorsById[e.tensor];
+      if (t && t.shape && t.shape.length) {
+        const dims = t.shape.slice(-3);
+        while (dims.length < 3) dims.unshift(1);
+        const maxd = Math.max(...t.shape, 2);
+        const f = d => 0.22 + 1.5 * Math.log2(1 + d) / Math.log2(1 + maxd);
+        const tm = new THREE.Mesh(new THREE.BoxGeometry(f(dims[2]), f(dims[0]), f(dims[1])),
+          new THREE.MeshStandardMaterial({ color: 0xbcd3f5, transparent: true,
+            opacity: 0.5, roughness: 0.3, metalness: 0.1 }));
+        tm.position.copy(curve.getPoint(0.5)); tm.position.z += 0.02;
+        tm.raycast = () => {}; gTensors.add(tm);
+      }
+    }
+  });
+
+  /* expanded-container boxes */
+  const containers = [...expanded].filter(cid => byId[cid] && byId[cid].parent !== null);
+  containers.sort((a, b) => byId[a].depth - byId[b].depth);
+  containers.forEach(cid => {
+    const members = view.nodeIds.filter(id =>
+      id !== cid && (ancestorChain(byId[id]).includes(cid)));
+    if (!members.length) return;
+    const bb = new THREE.Box3();
+    members.forEach(id => bb.expandByObject(nodeMesh[id]));
+    const depth = byId[cid].depth;
+    const pad = 1.5 - depth * 0.25;
+    bb.expandByScalar(Math.max(0.55, pad));
+    const size = bb.getSize(new THREE.Vector3()), ctr = bb.getCenter(new THREE.Vector3());
+    const geo = new THREE.BoxGeometry(size.x, size.y, Math.min(size.z, 1.8));
+    const box = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color: 0x3a4a6e, transparent: true, opacity: 0.07, depthWrite: false }));
+    box.position.set(ctr.x, ctr.y, 0); box.raycast = () => {};
+    const eg = new THREE.LineSegments(new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0x51629a, transparent: true, opacity: 0.5 }));
+    eg.position.copy(box.position);
+    gContainers.add(box); gContainers.add(eg);
+    const lbl = labelSprite(byId[cid].name, null, 0.8, "#9fb0d0");
+    lbl.position.set(bb.min.x + 2.2, bb.max.y + 0.9, 0.4);
+    gContainers.add(lbl);
+  });
+
+  const ortho = camera === cameraO;      // rebuild must respect 2D-ortho state
+  gActs.visible = $("mAct").checked && !ortho;
+  gGrads.visible = $("mGrad").checked && !ortho;
+  gLabels.visible = $("mLabels").checked;
+  gRuler.visible = !ortho;
+  gGrid.visible = !ortho;
+  applyBarScale();
+  buildGrid();
+  buildRuler();
+  buildTimeline();
+  refreshTree();
+  if (selected && !byId[selected]) { selected = null; inspect(null); refreshDiag(); }
+  else if (selected) select(selected, false);   // recreate the ring gFx lost
+}
+
+/* ---------- ±Z scale slider, quantitative ruler, ground grid ---------- */
+function applyBarScale() {
+  [...gActs.children, ...gGrads.children].forEach(bar => {
+    const { h0, sign } = bar.userData;
+    if (h0 === undefined) return;
+    bar.scale.z = BAR_SCALE;
+    bar.position.z = sign * (NODE_D / 2 + 0.12 + (h0 * BAR_SCALE) / 2);
+  });
+}
+function sceneBBox() {
+  const bb = new THREE.Box3();
+  Object.values(nodeMesh).forEach(m => bb.expandByObject(m));
+  return bb;
+}
+function fmtLog10(v) {
+  const r = Math.round(v * 10) / 10;
+  return "1e" + (r >= 0 ? "+" : "") + r;
+}
+function buildRuler() {
+  clearGroup(gRuler);
+  const bb = sceneBBox();
+  if (bb.isEmpty() || (!actRange && !gradRange)) return;
+  /* camera-side of the flow axis, mid-model: visible in profile view */
+  const x = bb.max.x + 4.2, y = bb.getCenter(new THREE.Vector3()).y;
+  const zTop = (0.25 + 3.4) * BAR_SCALE + 0.12 + NODE_D / 2;
+  const line = (pts, color, op) => {
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    gRuler.add(new THREE.Line(g, new THREE.LineBasicMaterial({
+      color, transparent: true, opacity: op })));
+  };
+  line([new THREE.Vector3(x, y, -zTop), new THREE.Vector3(x, y, zTop)], 0x6d81b5, 0.8);
+  const side = (range, sign, title, color) => {
+    if (!range) return;
+    [0, 0.5, 1].forEach(tt => {
+      const z = sign * ((0.25 + tt * 3.4) * BAR_SCALE + 0.12 + NODE_D / 2);
+      line([new THREE.Vector3(x - 0.45, y, z), new THREE.Vector3(x + 0.45, y, z)], 0x6d81b5, 0.8);
+      const v = range.med + (tt - 0.5) * 2 * range.half;
+      const sp = labelSprite(fmtLog10(v), null, 0.5, "#93a6c9");
+      sp.position.set(x - 2.0, y, z); gRuler.add(sp);
+    });
+    const ttl = labelSprite(title, null, 0.52, color);
+    ttl.position.set(x, y, sign * (zTop + 1.0)); gRuler.add(ttl);
+  };
+  side(actRange, +1, "act rms", "#6bd490");
+  side(gradRange, -1, "grad rms", "#b48cff");
+}
+function buildGrid() {
+  clearGroup(gGrid);
+  const bb = sceneBBox();
+  if (bb.isEmpty()) return;
+  const span = Math.max(bb.max.x - bb.min.x, bb.max.y - bb.min.y) + 34;
+  const size = Math.max(60, Math.ceil(span / 10) * 10);
+  const grid = new THREE.GridHelper(size, Math.round(size / 4.6), 0x2c3a58, 0x151b29);
+  grid.rotation.x = Math.PI / 2;                 // XZ -> XY plane (Z-up world)
+  const ctr = bb.getCenter(new THREE.Vector3());
+  grid.position.set(ctr.x, ctr.y, -0.03);
+  grid.material.transparent = true; grid.material.opacity = 0.55;
+  grid.raycast = () => {};
+  gGrid.add(grid);
+}
+
+/* ---------- execution flow pulses (forward/backward replay) ---------- */
+function spawnPulses(frame) {
+  const owner = displayNodeFor(frame.node);
+  if (!owner || owner === "__CONTRACT__" || !nodeMesh[owner]) return;
+  const fwd = frame.phase === "forward";
+  const list = edgeCurves.filter(ec => fwd ? ec.target === owner : ec.source === owner);
+  const color = fwd ? 0x5ecb92 : 0xb48cff;
+  list.slice(0, 6).forEach(ec => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 9),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1.0 }));
+    m.raycast = () => {};
+    gFx.add(m);
+    pulses.push({ mesh: m, curve: ec.curve, rev: !fwd, t0: performance.now(), dur: 620 });
+  });
+  const excess = pulses.length - 42;
+  if (excess > 0) pulses.splice(0, excess).forEach(p => {
+    disposeDeep(p.mesh); gFx.remove(p.mesh);
+  });
+}
+
+/* ---------- camera fit ---------- */
+function fitCamera(first) {
+  const bb = new THREE.Box3();
+  Object.values(nodeMesh).forEach(m => bb.expandByObject(m));
+  if (bb.isEmpty()) return;
+  const ctr = bb.getCenter(new THREE.Vector3()), size = bb.getSize(new THREE.Vector3());
+  const diag = Math.max(12, Math.hypot(size.x, size.y));
+  controls.target.copy(ctr);
+  const elongated = size.y > size.x * 2.2;      // long chains: side profile view
+  const r = Math.min(170, diag * (elongated ? 0.5 : 0.62) + 10);
+  const theta = elongated ? 0.12 : -Math.PI / 2 + 0.42;
+  const phi = elongated ? 1.18 : 0.96;
+  controls.orthoZoom = Math.max(size.x * 1.15, size.y * 0.62, 20) / (30 * 2) * 2;
+  if (first) {
+    controls.r = r; controls.theta = theta; controls.phi = phi;
+    controls.apply();
+  } else {
+    controls.tweenTo({ tx: ctr.x, ty: ctr.y, tz: ctr.z, r, theta, phi }, 700);
+  }
+  syncOrtho();
+}
+
+/* ---------- selection & inspector ---------- */
+function fmt(v) {
+  if (v === null || v === undefined) return "—";
+  if (typeof v !== "number") return String(v);
+  if (Number.isInteger(v)) return v.toLocaleString("en-US");
+  const a = Math.abs(v);
+  return (a !== 0 && (a < 1e-3 || a >= 1e4)) ? v.toExponential(2) : v.toPrecision(4);
+}
+function statTable(s) {
+  if (!s) return "";
+  const rows = [["rms", s.rms], ["mean", s.mean], ["std", s.std], ["min", s.min],
+    ["max", s.max], ["zero %", s.zero_frac == null ? null : (s.zero_frac * 100).toFixed(1) + "%"],
+    ["NaN / Inf", (s.nan || 0) + " / " + (s.inf || 0)], ["numel", s.numel]];
+  return "<table class='kv'>" + rows.map(r =>
+    `<tr><td>${esc(r[0])}</td><td>${esc(fmt(r[1]))}</td></tr>`).join("") + "</table>";
+}
+function inspect(id) {
+  const el = $("insp");
+  if (!id) { el.innerHTML = "<div class='placeholder'>Click a node<br>to inspect it</div>"; return; }
+  const n = byId[id];
+  const rows = [];
+  rows.push(["id", n.id], ["kind", n.kind], ["op", n.op || "—"], ["depth", n.depth]);
+  if (n.kind === "module") {
+    rows.push(["params", fmt(n.params)], ["own params", fmt(n.params_own)],
+      ["forward time", n.time_ns != null ? (n.time_ns / 1e6).toFixed(2) + " ms" : "—"],
+      ["call #", n.call_index],
+      ["exec seq", n.seq != null ? n.seq + " – " + n.seq_end : "—"]);
+    if (n.aliases && n.aliases.length) rows.push(["shared as", n.aliases.join(", ")]);
+  }
+  const sh = (a) => (a || []).map(s => "[" + s.join("×") + "]").join("  ");
+  if (n.in_shapes && n.in_shapes.length) rows.push(["in", sh(n.in_shapes)]);
+  if (n.out_shapes && n.out_shapes.length) rows.push(["out", sh(n.out_shapes)]);
+  if (n.tensor) {
+    const t = IR.tensorsById[n.tensor];
+    if (t) rows.push(["dtype", t.dtype || "—"], ["bytes", fmt(t.bytes)]);
+  }
+  let html = `<h2>${esc(n.kind === "module" ? (n.name || n.id) : n.id)}</h2>
+    <div class="sub">${esc(n.kind)}${n.kind === "module" ? " · " + esc(n.op) : ""}</div>
+    <table class="kv">` + rows.map(r =>
+      `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join("") + "</table>";
+  if (n.attrs) html += `<div class="stat-h">Attributes</div>
+    <div class="attrs">${esc(n.attrs)}</div>`;
+
+  const sa = statsFor(id, actByNode), sg = statsFor(id, gradByNode);
+  if (sa) html += `<div class="stat-h fwd">Activation (forward, +Z)</div>` + statTable(sa);
+  if (sg) html += `<div class="stat-h bwd">Gradient (backward, −Z)</div>` + statTable(sg);
+
+  const pg = framesSorted.filter(f => f.node === id && f.kind === "param_grad" && f.step === lastStep);
+  if (pg.length) {
+    html += `<div class="stat-h bwd">Parameter gradients</div>`;
+    pg.forEach(f => { html += `<div class="sub">.${esc(f.param)}</div>` + statTable(f.stats); });
+  }
+  const ws = warnsFor(id);
+  if (ws.length) {
+    html += `<div class="stat-h" style="color:var(--warn)">Diagnostics</div>`;
+    ws.slice(0, 8).forEach(w => {
+      html += `<span class="wchip ${esc(w.severity)}"><b>${esc(w.rule)}</b><br>${esc(w.message)}</span>`;
+    });
+    if (ws.length > 8) html += `<div class="sub">… ${ws.length - 8} more</div>`;
+  }
+  el.innerHTML = html;
+}
+
+let selRing = null;
+function select(id, focus) {
+  selected = id;
+  if (selRing) { disposeDeep(selRing); gFx.remove(selRing); selRing = null; }
+  if (id && nodeMesh[id]) {
+    const m = nodeMesh[id];
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.07, 8, 40),
+      new THREE.MeshBasicMaterial({ color: 0x5aa7ff }));
+    ring.position.copy(m.position);
+    selRing = ring; gFx.add(ring);
+    if (focus) controls.tweenTo({ tx: m.position.x, ty: m.position.y,
+      tz: m.position.z, r: Math.min(controls.r, 34) });
+  }
+  inspect(id);
+  refreshDiag();                       // panel follows the selection filter
+  document.querySelectorAll(".tnode").forEach(t =>
+    t.classList.toggle("sel", t.dataset.id === id));
+}
+
+/* picking */
+function onPick(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const p = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1,
+                              -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(p, camera);
+  /* r128's raycaster ignores `visible`: only offer visible overlay bars,
+     or hidden bars become ghost hover/click hotspots. */
+  const cand = [...gNodes.children];
+  if (gActs.visible) cand.push(...gActs.children.filter(b => b.visible));
+  if (gGrads.visible) cand.push(...gGrads.children.filter(b => b.visible));
+  const hits = raycaster.intersectObjects(cand, true);
+  let id = null;
+  for (const h of hits) {
+    let o = h.object;
+    while (o && !o.userData.id) o = o.parent;
+    if (o && o.userData.id) { id = o.userData.id; break; }
+  }
+  return id;
+}
+
+/* ---------- model tree & diagnostics panels ---------- */
+function refreshTree() {
+  const root = IR.nodes.find(n => n.kind === "module" && !n.parent);
+  const el = $("tree"); el.innerHTML = "";
+  const mk = (id, indent) => {
+    const n = byId[id];
+    if (!n || n.kind !== "module") return;
+    const kids = (childrenOf[id] || []).filter(c => byId[c].kind === "module");
+    const isCont = !n.is_leaf_module;
+    const isOpen = expanded.has(id);
+    const row = document.createElement("div");
+    row.className = "tnode"; row.dataset.id = id;
+    row.style.paddingLeft = (6 + indent * 13) + "px";
+    const ws = warnsFor(id);
+    const err = ws.some(w => w.severity === "error");
+    row.innerHTML =
+      `<span class="karat">${isCont ? (isOpen ? "▾" : "▸") : "·"}</span>` +
+      `<span>${esc(n.parent ? String(n.name || n.id).split(".").pop() : (n.name || n.id))}</span>` +
+      `<span class="op">${esc(n.op)}</span>` +
+      (ws.length ? `<span class="wbadge ${err ? "ebadge" : ""}">${ws.length}</span>` : "");
+    row.querySelector(".karat").onclick = ev => {
+      ev.stopPropagation();
+      if (!isCont) return;
+      if (isOpen) { expanded.delete(id); collapseDescendants(id); } else expanded.add(id);
+      rebuildScene();
+    };
+    row.onclick = () => {
+      const t = nodeMesh[id] ? id : displayNodeFor(id);
+      // meshless ids (expanded containers) are still selectable: the
+      // inspector and the diagnostics filter work without a 3D box
+      select(t && nodeMesh[t] ? t : id, true);
+    };
+    el.appendChild(row);
+    if (isOpen) kids.forEach(k => mk(k, indent + 1));
+  };
+  if (root) mk(root.id, 0);
+}
+function collapseDescendants(id) {
+  (childrenOf[id] || []).forEach(c => { expanded.delete(c); collapseDescendants(c); });
+}
+
+function refreshDiag() {
+  const el = $("diag"); el.innerHTML = "";
+  const all = IR.warnings || [];
+  /* selection filters the panel: a selected module shows its own findings
+     plus its descendants' (same aggregation as the tree badges) */
+  const ws = selected ? warnsFor(selected) : all;
+  $("diagTitle").textContent = selected
+    ? `Diagnostics (${ws.length}/${all.length})`
+    : `Diagnostics (${all.length})`;
+  if (selected) {
+    const n = byId[selected];
+    const label = n && n.kind === "module" ? (n.name || selected) : selected;
+    const f = document.createElement("div");
+    f.className = "dline dfilter";
+    f.innerHTML = `filtered to <b>${esc(label)}</b> · <span class="showall">show all</span>`;
+    f.onclick = () => select(null, false);
+    el.appendChild(f);
+  }
+  ws.slice(0, 120).forEach(w => {
+    const d = document.createElement("div");
+    d.className = "dline " + esc(w.severity);
+    d.innerHTML = `<span class="rule">${esc(w.rule)}</span> <span class="nid">${esc(w.node || "")}</span><br>${esc(w.message)}`;
+    if (w.node) d.onclick = () => {
+      const owner = displayNodeFor(w.node);
+      if (owner && owner !== "__CONTRACT__" && nodeMesh[owner]) select(owner, true);
+    };
+    el.appendChild(d);
+  });
+  if (ws.length > 120) {
+    const d = document.createElement("div");
+    d.className = "dline";
+    d.textContent = `… ${ws.length - 120} more`;
+    el.appendChild(d);
+  }
+  if (!ws.length) {
+    const d = document.createElement("div");
+    d.className = "dline"; d.style.color = "var(--ok)";
+    d.textContent = selected && all.length
+      ? "No findings for this node." : "No anomalies detected.";
+    el.appendChild(d);
+  }
+}
+
+/* ---------- timeline replay ---------- */
+let tlFrames = [], playTimer = null;
+function buildTimeline() {
+  tlFrames = framesSorted.filter(f => f.step === lastStep && f.kind !== "param_grad");
+  const s = $("timeline");
+  s.max = tlFrames.length; s.value = tlFrames.length;
+  applyTimeline(tlFrames.length);
+}
+function applyTimeline(t) {
+  t = +t;
+  const showAll = t >= tlFrames.length;
+  const seqCut = showAll ? Infinity : (t > 0 ? tlFrames[t - 1].seq : -1);
+  const seen = { act: new Set(), grad: new Set() };
+  tlFrames.forEach(f => {
+    if (f.seq <= seqCut) {
+      const owner = displayNodeFor(f.node);
+      if (f.kind === "activation") seen.act.add(owner);
+      if (f.kind === "gradient") seen.grad.add(owner);
+    }
+  });
+  Object.entries(overlayByNode).forEach(([id, o]) => {
+    if (o.act) o.act.visible = showAll || seen.act.has(id);
+    if (o.grad) o.grad.visible = showAll || seen.grad.has(id);
+  });
+  const badge = $("phaseBadge");
+  if (t === 0 || showAll) {
+    badge.className = "phase idle"; badge.textContent = showAll ? "complete" : "idle";
+    $("frameinfo").textContent = showAll ? tlFrames.length + " frames" : "—";
+    pulse(null);
+  } else {
+    const f = tlFrames[t - 1];
+    badge.className = "phase " + f.phase; badge.textContent = f.phase;
+    const rms = f.stats && f.stats.rms != null ? " rms=" + fmt(f.stats.rms) : "";
+    $("frameinfo").textContent = `#${f.seq} ${f.node}${rms}`;
+    pulse(displayNodeFor(f.node));
+    spawnPulses(f);
+  }
+}
+let pulseMesh = null;
+function pulse(id) {
+  if (pulseMesh) { disposeDeep(pulseMesh); gFx.remove(pulseMesh); pulseMesh = null; }
+  if (!id || !nodeMesh[id]) return;
+  const m = nodeMesh[id];
+  pulseMesh = new THREE.Mesh(new THREE.BoxGeometry(NODE_W + 1, NODE_H + 1, NODE_D + 1),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false }));
+  pulseMesh.position.copy(m.position); pulseMesh.raycast = () => {};
+  gFx.add(pulseMesh);
+}
+function togglePlay() {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; $("btnPlay").textContent = "▶ Replay"; return; }
+  const s = $("timeline");
+  if (+s.value >= tlFrames.length) s.value = 0;
+  $("btnPlay").textContent = "⏸ Pause";
+  const stepSize = Math.max(1, Math.round(tlFrames.length / 420));
+  playTimer = setInterval(() => {
+    s.value = Math.min(+s.value + stepSize, tlFrames.length);
+    applyTimeline(s.value);
+    if (+s.value >= tlFrames.length) togglePlay();
+  }, 34);
+}
+
+/* ---------- legend ---------- */
+function buildLegend() {
+  const chip = (c, l) => `<span class="lg" style="background:#${c.toString(16).padStart(6, "0")}"></span>${l}`;
+  $("legend").innerHTML =
+    `<b>Nodes</b>&nbsp; ${chip(CAT_COLORS.conv, "conv")} ${chip(CAT_COLORS.linear, "linear")} ` +
+    `${chip(CAT_COLORS.norm, "norm")} ${chip(CAT_COLORS.act, "activation")} ` +
+    `${chip(CAT_COLORS.container, "container")} ${chip(CAT_COLORS.join, "join-op")}<br>` +
+    `<b>+Z bar</b> forward |activation| (log) &nbsp; <b>−Z bar</b> backward |gradient| (log) — ` +
+    `ruler beside the model gives the 1e<sup>x</sup> scale<br>` +
+    `<b>Blue curved tube</b> skip connection &nbsp; <b>⚠</b> diagnostic finding &nbsp; ` +
+    `<b>moving dots</b> execution flow during replay (green fwd · purple bwd)`;
+}
+
+/* ---------- boot & wiring ---------- */
+function loadModel(i) {
+  prepareModel(DATA.models[i]);
+  selected = null;
+  rebuildScene();
+  refreshDiag();
+  fitCamera(true);
+  inspect(null);
+}
+function tickRender() {
+  controls.update();                                  // camera tweens
+  if (selRing) selRing.rotation.z += 0.02;
+  if (pulseMesh) pulseMesh.material.opacity = 0.16 + 0.14 * Math.sin(performance.now() / 120);
+  const now = performance.now();                      // flow pulses
+  pulses = pulses.filter(pl => {
+    const u = (now - pl.t0) / pl.dur;
+    if (u >= 1) { disposeDeep(pl.mesh); gFx.remove(pl.mesh); return false; }
+    pl.mesh.position.copy(pl.curve.getPoint(pl.rev ? 1 - u : u));
+    pl.mesh.material.opacity = 0.95 * (1 - u * 0.45);
+    return true;
+  });
+  renderer.render(scene, camera);
+  requestAnimationFrame(tickRender);
+}
+
+initScene();
+buildLegend();
+const sel = $("modelSel");
+DATA.models.forEach((m, i) => {
+  const o = document.createElement("option");
+  o.value = i; o.textContent = m.model.name;
+  sel.appendChild(o);
+});
+sel.onchange = () => loadModel(+sel.value);
+
+/* hover tooltip with exact statistics */
+const tipEl = $("tip");
+let tipPending = false;
+renderer.domElement.addEventListener("pointermove", e => {
+  if (tipPending) return;
+  tipPending = true;
+  requestAnimationFrame(() => {
+    tipPending = false;
+    if (e.buttons) { tipEl.style.display = "none"; return; }
+    const id = onPick(e);
+    if (!id || !byId[id]) { tipEl.style.display = "none"; return; }
+    const n = byId[id];
+    const sa = statsFor(id, actByNode), sg = statsFor(id, gradByNode);
+    let h = `<b>${esc(n.kind === "module" ? (n.name || n.id) : n.id)}</b> ` +
+            `<span style="color:var(--dim)">${esc(n.op || "")}</span>`;
+    if (n.out_shapes && n.out_shapes[0]) h += `<br>out [${esc(n.out_shapes[0].join("×"))}]`;
+    if (n.params) h += ` · ${esc(fmt(n.params))} params`;
+    if (sa) h += `<br><span style="color:var(--ok)">act rms ${esc(fmt(sa.rms))}</span>` +
+                 (sa.zero_frac > 0.5 ? ` <span style="color:var(--warn)">(${(sa.zero_frac * 100) | 0}% zero)</span>` : "");
+    if (sg) h += `<br><span style="color:var(--grad)">grad rms ${esc(fmt(sg.rms))}</span>`;
+    const ws = warnsFor(id);
+    if (ws.length) h += `<br><span style="color:var(--warn)">⚠ ${ws.length} finding${ws.length > 1 ? "s" : ""}</span>`;
+    tipEl.innerHTML = h;
+    const rect = wrap.getBoundingClientRect();
+    tipEl.style.left = Math.min(e.clientX - rect.left + 14, rect.width - 270) + "px";
+    tipEl.style.top = Math.min(e.clientY - rect.top + 12, rect.height - 130) + "px";
+    tipEl.style.display = "block";
+  });
+});
+renderer.domElement.addEventListener("pointerleave", () => tipEl.style.display = "none");
+renderer.domElement.addEventListener("pointerdown", () => tipEl.style.display = "none");
+
+/* select on pointerup with a drag threshold: starting a rotate/pan drag
+   over a node must not change the selection. */
+let lastClick = 0, lastClickId = null, downX = 0, downY = 0;
+renderer.domElement.addEventListener("pointerdown", e => {
+  if (e.button === 0) { downX = e.clientX; downY = e.clientY; }
+});
+renderer.domElement.addEventListener("pointerup", e => {
+  if (e.button !== 0) return;
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;   // drag
+  const id = onPick(e);
+  const now = performance.now();
+  if (id && id === lastClickId && now - lastClick < 350) {
+    const n = byId[id];
+    if (n.kind === "module" && !n.is_leaf_module) { expanded.add(id); rebuildScene(); }
+    else if (n.parent && byId[n.parent] && expanded.has(n.parent)) {
+      expanded.delete(n.parent); collapseDescendants(n.parent); rebuildScene();
+    }
+  } else if (id) select(id, false);
+  lastClick = now; lastClickId = id;
+});
+
+$("mAct").onchange = e => gActs.visible = e.target.checked && camera !== cameraO;
+$("mGrad").onchange = e => gGrads.visible = e.target.checked && camera !== cameraO;
+$("mLabels").onchange = e => gLabels.visible = e.target.checked;
+$("mTensor").onchange = () => rebuildScene();
+$("mOps").onchange = () => rebuildScene();
+$("mRoll").onchange = () => rebuildScene();
+$("barScale").oninput = e => {
+  BAR_SCALE = +e.target.value;
+  applyBarScale(); buildRuler();
+};
+$("btnReset").onclick = () => fitCamera(false);
+$("btnOrtho").onclick = () => {
+  const toOrtho = camera !== cameraO;
+  camera = toOrtho ? cameraO : cameraP;
+  $("btnOrtho").classList.toggle("active", toOrtho);
+  controls.enabledRotate = !toOrtho;
+  gActs.visible = !toOrtho && $("mAct").checked;
+  gGrads.visible = !toOrtho && $("mGrad").checked;
+  gRuler.visible = !toOrtho;
+  gGrid.visible = !toOrtho;
+  controls.apply(); if (toOrtho) syncOrtho();
+};
+$("timeline").oninput = e => applyTimeline(e.target.value);
+$("btnPlay").onclick = togglePlay;
+
+if (DATA.models.length) loadModel(0);
+else $("insp").innerHTML = "<div class='placeholder'>No IR embedded.<br>Run build_demo.py.</div>";
+</script>
+</body>
+</html>

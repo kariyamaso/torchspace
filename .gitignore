@@ -1,0 +1,16 @@
+# environments & caches
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# build artifacts (regenerate with `uv build` / `python build_demo.py`)
+dist/
+out/
+*.egg-info/
+
+# local dev / debug artifacts
+shots/
+.playwright-mcp/
+*.torchspace.html
+*.torchspace.json
