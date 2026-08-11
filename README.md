@@ -1,3 +1,5 @@
+<h1 align="center">TorchSpace</h1>
+
 <p align="center">
   <img src="docs/assets/hero.png" width="100%" alt="TorchSpace viewer — a 24-layer pathological MLP as a 3D scene: green +Z activation bars, one red exploding layer, the diagnostics panel filtered to backbone.4 and the inspector showing exact statistics" />
 </p>
