@@ -45,7 +45,7 @@ attachment, and offline.
 ## Install
 
 ```bash
-pip install --pre torchspace        # pre-release: --pre is required
+pip install torchspace
 ```
 
 ## Quick start

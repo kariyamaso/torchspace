@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "torchspace"
-version = "0.1.0a2"
+version = "0.1.0"
 description = "Spatial debugger for PyTorch: architecture, tensor geometry, forward activations and backward gradients in one interactive Three.js scene. Built as a non-invasive extension of torchview."
 readme = "README.md"
 requires-python = ">=3.9"
