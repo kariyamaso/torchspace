@@ -1,7 +1,7 @@
 <h1 align="center">TorchSpace</h1>
 
 <p align="center">
-  <img src="docs/assets/hero.png" width="100%" alt="TorchSpace viewer — a 24-layer pathological MLP as a 3D scene: green +Z activation bars, one red exploding layer, the diagnostics panel filtered to backbone.4 and the inspector showing exact statistics" />
+  <img src="https://raw.githubusercontent.com/kariyamaso/torchspace/main/docs/assets/hero.png" width="100%" alt="TorchSpace viewer — a 24-layer pathological MLP as a 3D scene: green +Z activation bars, one red exploding layer, the diagnostics panel filtered to backbone.4 and the inspector showing exact statistics" />
 </p>
 
 <p align="center"><b>Spatial debugging for PyTorch — architecture, activations and gradients in one interactive 3D scene</b></p>
@@ -10,7 +10,7 @@
   <a href="https://colab.research.google.com/github/kariyamaso/torchspace/blob/main/TorchSpace_Tutorial.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab" /></a>
   <a href="https://pypi.org/project/torchspace/"><img src="https://img.shields.io/pypi/v/torchspace?color=2fb3a5" alt="PyPI" /></a>
   <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+" />
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/kariyamaso/torchspace/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
 </p>
 
 <p align="center">
@@ -64,7 +64,7 @@ torchspace.view(model, input_size=(1, 3, 224, 224), device="meta")
 # structure-only mode, no activation capture (works on meta device)
 ```
 
-**Tutorial**: [`TorchSpace_Tutorial.ipynb`](TorchSpace_Tutorial.ipynb) walks
+**Tutorial**: [`TorchSpace_Tutorial.ipynb`](https://github.com/kariyamaso/torchspace/blob/main/TorchSpace_Tutorial.ipynb) walks
 through the full API — quick start, diagnosing a pathological network, the IR,
 meta-device inspection, torchview-parity graphviz export, module attributes,
 training-loop instrumentation, and export/sharing. Open it with the Colab
@@ -171,11 +171,12 @@ Developing the viewer: edit `viewer/src.html`, then run
   <a href="https://x.com/so_kariyama"><img src="https://img.shields.io/badge/X_(Twitter)-%40so__kariyama-0e1013?style=for-the-badge&logo=x&logoColor=white" alt="X: @so_kariyama" /></a>
 </p>
 <p align="center">
-  <a href="https://x.com/so_kariyama"><img src="docs/assets/qr.png" width="150" alt="QR code for X @so_kariyama" /></a>
+  <a href="https://x.com/so_kariyama"><img src="https://raw.githubusercontent.com/kariyamaso/torchspace/main/docs/assets/qr.png" width="150" alt="QR code for X @so_kariyama" /></a>
 </p>
 
 ## License
 
-[MIT](LICENSE) — torchview (MIT) is imported as a dependency, none of its code
+[MIT](https://github.com/kariyamaso/torchspace/blob/main/LICENSE) — torchview
+(MIT) is imported as a dependency, none of its code
 is copied; three.js r128 (MIT, © Three.js Authors) is bundled inside the
 packaged viewer with its license header retained.
