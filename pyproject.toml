@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "TorchSpace project" }]
+authors = [{ name = "kariyamaso" }]
 keywords = [
   "pytorch", "visualization", "debugger", "neural-network",
   "torchview", "three.js", "activations", "gradients", "observability",
@@ -38,9 +38,10 @@ notebook = ["ipython>=7.0"]
 dev = ["pytest", "playwright", "build"]
 
 [project.urls]
-Documentation = "https://github.com/torchspace/torchspace#readme"
-Source = "https://github.com/torchspace/torchspace"
-Issues = "https://github.com/torchspace/torchspace/issues"
+Homepage = "https://kariyamaso.github.io/torchspace/"
+Documentation = "https://github.com/kariyamaso/torchspace#readme"
+Source = "https://github.com/kariyamaso/torchspace"
+Issues = "https://github.com/kariyamaso/torchspace/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["torchspace"]

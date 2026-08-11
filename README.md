@@ -1,71 +1,104 @@
-# TorchSpace PoC (v0.1.0.dev0)
+<p align="center">
+  <img src="docs/assets/hero.png" width="100%" alt="TorchSpace viewer — a 24-layer pathological MLP as a 3D scene: green +Z activation bars, one red exploding layer, the diagnostics panel filtered to backbone.4 and the inspector showing exact statistics" />
+</p>
 
-Proof-of-concept for **TorchSpace** — a spatial debugger for PyTorch that
-combines model architecture, tensor geometry, forward activations, and
-backward gradients in one interactive Three.js scene — built as a
-**non-invasive extension of [torchview](https://github.com/mert-kurttutan/torchview)**.
+<p align="center"><b>Spatial debugging for PyTorch — architecture, activations and gradients in one interactive 3D scene</b></p>
 
-This PoC accompanies *TorchSpace Detailed Engineering Design v0.2* and
-validates its core architectural claims:
+<p align="center">
+  <a href="https://colab.research.google.com/github/kariyamaso/torchspace/blob/main/TorchSpace_Tutorial.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab" /></a>
+  <a href="https://pypi.org/project/torchspace/"><img src="https://img.shields.io/pypi/v/torchspace?color=2fb3a5" alt="PyPI" /></a>
+  <img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
 
-1. torchview's tracer can be extended **without forking or copying code**
-   (two scoped composition points: a wrapped module-forward and a composed
-   `RecorderTensor.__torch_function__`).
-2. A neutral, stable-ID **IR** can be built from the enriched trace and is
-   sufficient to drive a renderer with no Python/graphviz dependency.
-3. Runtime activation/gradient statistics captured by ordinary hooks on
-   *plain* tensors align with the structural trace via `(fqn, call_index)`.
-4. The semantic-3D encoding (X/Y architecture · +Z activation · −Z gradient)
-   makes vanishing gradients, activation explosions, dead regions, and
-   forward/backward asymmetry visible in a single scene.
+<p align="center">
+  <a href="https://kariyamaso.github.io/torchspace/"><img src="https://img.shields.io/badge/%E2%96%B6%20Live%20Demo-open%20in%20your%20browser-2fb3a5?style=for-the-badge" alt="▶ Live Demo" /></a>
+</p>
+<p align="center"><sub>
+▲ Live Demo — the full interactive viewer with two demo models, running entirely in your browser (nothing to install, no server)
+</sub></p>
 
-## Quick start
+> **TorchSpace** renders a PyTorch model as one interactive Three.js scene:
+> **X·Y** is the architecture (layers, blocks, skip connections), **+Z** is
+> forward activation magnitude and **−Z** is backward gradient magnitude, both
+> on a log scale. Vanishing gradients, activation explosions, dead regions and
+> forward/backward asymmetry become *visible shapes* instead of numbers you
+> have to hunt for. Built as a **non-invasive extension of
+> [torchview](https://github.com/mert-kurttutan/torchview)** — no code copied,
+> full torchview feature set preserved.
+
+| axis | meaning |
+|---|---|
+| **X · Y** | architecture — layers, containers, skip connections |
+| **+Z** | forward \|activation\| per layer (log scale) |
+| **−Z** | backward \|gradient\| per layer (log scale) |
+
+Everything is captured as **summary statistics only** (never raw tensors) and
+exported as a single self-contained HTML file: three.js is inlined and the
+statistics are embedded, so it works in Colab, Jupyter, VS Code, as an email
+attachment, and offline.
+
+---
+
+## Install
 
 ```bash
-pip install dist/torchspace-0.1.0a1-py3-none-any.whl   # or, once published: pip install torchspace
-python build_demo.py                        # traces both demo models
-# -> out/torchspace_viewer.html   (self-contained; open in any browser)
-# -> out/<Model>.torchspace.json  (IR documents)
-python tests/test_smoke.py
+pip install --pre torchspace        # pre-release: --pre is required
 ```
 
-## Notebooks (Colab / Jupyter / VS Code)
-
-```python
-run = torchspace.trace(model, input_data=x)
-loss = criterion(model(x), y); run.capture_backward(loss)
-run.show(height=620)      # full interactive 3D scene, inline in the cell
-```
-
-`show()` renders a sandboxed `srcdoc` iframe: three.js is inlined and the IR is
-embedded, so it works in Colab's network-restricted output frames and offline.
-
-**Tutorial**: [`TorchSpace_Tutorial.ipynb`](TorchSpace_Tutorial.ipynb) walks
-through the full API — quick start, diagnosing a pathological network, the IR,
-meta-device inspection, torchview-parity graphviz export, attributes, training
-loop instrumentation, and export/sharing. Open it directly in Colab:
-
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR-GITHUB-USERNAME/torchspace/blob/main/TorchSpace_Tutorial.ipynb)
-
-## API sketch (spec §5)
+## Quick start
 
 ```python
 import torchspace
 
-run = torchspace.trace(model, input_data=x)   # structure + instrument
+run = torchspace.trace(model, input_data=x)   # structure + instrumentation
 out = model(x)                                # captured forward
 run.capture_backward(criterion(out, y))       # captured backward
-run.export_html("model.torchspace.html")
-run.detach()
+run.show(height=620)                          # interactive scene, inline in a notebook
+run.export_html("model.torchspace.html")      # ...or one shareable file
+run.detach()                                  # de-instrument the model
 
 torchspace.view(model, input_size=(1, 3, 224, 224), device="meta")
 # structure-only mode, no activation capture (works on meta device)
 ```
 
-### torchview parity
+**Tutorial**: [`TorchSpace_Tutorial.ipynb`](TorchSpace_Tutorial.ipynb) walks
+through the full API — quick start, diagnosing a pathological network, the IR,
+meta-device inspection, torchview-parity graphviz export, module attributes,
+training-loop instrumentation, and export/sharing. Open it with the Colab
+badge at the top of this page.
 
-The trace captures at full detail (torchview's information is a strict
-subset of the IR), module/function attributes are collected by default
+---
+
+## What you get
+
+- **One scene for the whole story** — architecture, per-layer activation and
+  gradient magnitude, execution order and timing, all aligned in space.
+- **Rule-based diagnostics with evidence** — vanishing/exploding gradients,
+  dead regions, NaN/Inf, forward/backward asymmetry. Click a finding to jump
+  to the layer; select a layer to filter the panel to its findings.
+- **Timeline replay** — animate the actual forward (green) / backward
+  (purple) execution order with flow pulses.
+- **Real training loops** — statistics are captured by ordinary hooks on your
+  *actual* training steps, on-device, detached immediately. No separate
+  profiling pass, no `RecorderTensor` near your hot path.
+- **Notebook-native** — `run.show()` renders the scene in a sandboxed
+  `srcdoc` iframe that works in Colab's network-restricted output frames.
+
+### Viewer controls
+
+Drag = rotate · wheel = zoom · right-drag = pan · hover = exact stats ·
+click = inspect (+ diagnostics filter) · double-click = expand/collapse ·
+**2D Ortho** = torchview-style top-down view · **▶ Replay** = forward/backward
+replay · toggles for tensor geometry, ±Z overlays, ops, rolling, labels.
+The log-scale ruler beside the model gives the quantitative `1e^x` scale.
+
+---
+
+## torchview parity
+
+The trace captures at full detail (torchview's information is a strict subset
+of the IR), module/function attributes are collected by default
 (`collect_attributes=False` to disable), and torchview's native graphviz
 output stays available at any granularity:
 
@@ -76,20 +109,22 @@ run.draw_graph(depth=2, roll=True, save_graph=True,
 ```
 
 `draw_graph`/`export_dot` accept every `torchview.draw_graph` option
-(`depth`, `hide_inner_tensors`, `hide_module_functions`, `roll`,
-`graph_dir`, `strict`, ...) and reuse the exact inputs of the original
-trace; runtime capture hooks are suspended for the auxiliary pass.
+(`depth`, `hide_inner_tensors`, `hide_module_functions`, `roll`, `graph_dir`,
+`strict`, ...) and reuse the exact inputs of the original trace; runtime
+capture hooks are suspended for the auxiliary pass.
 
-### What ends up in an export (privacy)
+## What ends up in an export (privacy)
 
-Exports contain **statistics only** — never raw tensors. Be aware of two
-edges before sharing an export: `collect_attributes=True` (default)
-embeds a `repr`-style summary of each module's public attributes, which
-for custom modules can include checkpoint paths or config values — pass
-`collect_attributes=False` for sensitive models; and for a 1-element
-tensor the stats (min=max=mean) necessarily reveal its exact value.
+Exports contain **statistics only** — never raw tensors. Two edges to know
+before sharing: `collect_attributes=True` (default) embeds a `repr`-style
+summary of each module's public attributes, which for custom modules can
+include checkpoint paths or config values — pass `collect_attributes=False`
+for sensitive models; and for a 1-element tensor the stats (min=max=mean)
+necessarily reveal its exact value.
 
-## Layout
+---
+
+## Repository layout
 
 ```
 torchspace/
@@ -98,46 +133,47 @@ torchspace/
   runtime.py       # forward/backward hook capture on plain tensors
   stats.py         # compact tensor statistics (never raw tensors)
   ir.py            # IR builder: stable IDs, empty-pass contraction, edges
-  diagnostics.py   # rule-based anomaly detection (spec §12)
+  diagnostics.py   # rule-based anomaly detection
   api.py           # public view()/trace()/SpaceRun (+ draw_graph/export_dot)
   export.py        # embeds IR into the self-contained viewer
-  assets/viewer.html   # packaged viewer (generated — do not edit)
+  assets/viewer.html       # packaged viewer (generated — do not edit)
 viewer/
-  src.html               # viewer source (edit this)
-  three_r128_inline.html # vendored three.js r128 (script-wrapped)
-scripts/build_viewer.py  # src.html + three -> torchspace/assets/viewer.html
-demos.py           # PathologicalMLP + TinyResNet (spec §15)
-build_demo.py      # end-to-end driver
+  src.html                 # viewer source (edit this)
+  three_r128_inline.html   # vendored three.js r128 (script-wrapped)
+scripts/build_viewer.py    # src.html + three -> torchspace/assets/viewer.html
+docs/                      # GitHub Pages live demo + README assets
+build_demo.py              # end-to-end driver -> out/torchspace_viewer.html
 tests/test_smoke.py
-shot.py            # Playwright screenshot harness
 ```
 
-After editing `viewer/src.html`, run `python scripts/build_viewer.py` to
-regenerate the packaged asset.
+Developing the viewer: edit `viewer/src.html`, then run
+`python scripts/build_viewer.py` to regenerate the packaged asset, and
+`python build_demo.py` to rebuild the demo scene.
 
-## Viewer controls
-
-Drag = rotate · wheel = zoom · right-drag = pan · hover = exact stats ·
-click = inspect · double-click = expand/collapse containers · **2D Ortho** =
-torchview-style top-down architecture view · timeline = forward/backward
-replay with execution-flow pulses (green fwd / purple bwd).
-Toggles: Tensor geometry, Activation +Z, Gradient −Z, Show ops,
-Roll repeated, Labels, ±Z scale. The log-scale ruler beside the model gives
-the quantitative 1e^x scale for both overlays.
-
-## Known PoC limitations (addressed in the design document)
+## Known limitations (PoC)
 
 - Layout is a simple deterministic layered algorithm; production uses ELK
-  compound layout (containers never overlap siblings). The 3D viewer has
-  no `graph_dir` equivalent (use `export_dot(graph_dir=...)` for that).
-- Tensor dtype/bytes are captured for op outputs and inputs, not for
-  tensors created by `torch.*` creation ops inside `forward`.
+  compound layout. The 3D viewer has no `graph_dir` equivalent (use
+  `export_dot(graph_dir=...)` for that).
+- Tensor dtype/bytes are captured for op outputs and inputs, not for tensors
+  created by `torch.*` creation ops inside `forward`.
 - `requires_grad` in the IR reflects the (no-grad) structural pass.
-- Diagnostics use median-relative thresholds; monotonic profiles
-  (e.g. a fully vanishing chain) need trend-aware rules (v0.2).
-- Single step / single device; no live server (static HTML export only).
+- Single step / single device shown in the viewer; earlier steps stay in the
+  IR. Static HTML export only (no live server).
 
-License: MIT (see `LICENSE`). torchview is MIT-licensed and imported as a
-dependency — none of its code is copied. three.js r128 (MIT, © Three.js
-Authors) is bundled inside the packaged viewer with its license header
-retained.
+---
+
+## Creator
+
+<p align="center">
+  <a href="https://x.com/so_kariyama"><img src="https://img.shields.io/badge/X_(Twitter)-%40so__kariyama-0e1013?style=for-the-badge&logo=x&logoColor=white" alt="X: @so_kariyama" /></a>
+</p>
+<p align="center">
+  <a href="https://x.com/so_kariyama"><img src="docs/assets/qr.png" width="150" alt="QR code for X @so_kariyama" /></a>
+</p>
+
+## License
+
+[MIT](LICENSE) — torchview (MIT) is imported as a dependency, none of its code
+is copied; three.js r128 (MIT, © Three.js Authors) is bundled inside the
+packaged viewer with its license header retained.
