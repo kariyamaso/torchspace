@@ -115,15 +115,6 @@ run.draw_graph(depth=2, roll=True, save_graph=True,
 `strict`, ...) and reuse the exact inputs of the original trace; runtime
 capture hooks are suspended for the auxiliary pass.
 
-## What ends up in an export (privacy)
-
-Exports contain **statistics only** — never raw tensors. Two edges to know
-before sharing: `collect_attributes=True` (default) embeds a `repr`-style
-summary of each module's public attributes, which for custom modules can
-include checkpoint paths or config values — pass `collect_attributes=False`
-for sensitive models; and for a 1-element tensor the stats (min=max=mean)
-necessarily reveal its exact value.
-
 ---
 
 ## Repository layout
@@ -152,16 +143,24 @@ Developing the viewer: edit `viewer/src.html`, then run
 `python scripts/build_viewer.py` to regenerate the packaged asset, and
 `python build_demo.py` to rebuild the demo scene.
 
-## Known limitations (PoC)
+## References
 
-- Layout is a simple deterministic layered algorithm; production uses ELK
-  compound layout. The 3D viewer has no `graph_dir` equivalent (use
-  `export_dot(graph_dir=...)` for that).
-- Tensor dtype/bytes are captured for op outputs and inputs, not for tensors
-  created by `torch.*` creation ops inside `forward`.
-- `requires_grad` in the IR reflects the (no-grad) structural pass.
-- Single step / single device shown in the viewer; earlier steps stay in the
-  IR. Static HTML export only (no live server).
+- **[torchview](https://github.com/mert-kurttutan/torchview)** — Kurttutan, M.
+  *torchview: visualize PyTorch models* (MIT). TorchSpace extends its tracer
+  non-invasively: torchview solves structural tracing (modules, functions,
+  tensors, hierarchy, recursion) via `RecorderTensor` and a patched
+  `nn.Module.__call__`, and TorchSpace composes around those two points to add
+  stable IDs, execution order, runtime metadata and statistics.
+- **[torchinfo](https://github.com/TylerYep/torchinfo)** — tabular model
+  summaries; the lineage torchview grew from.
+- **[three.js](https://threejs.org/)** — the WebGL renderer bundled in the
+  viewer (r128, MIT, © Three.js Authors).
+- Sugiyama, K., Tagawa, S., Toda, M. (1981). *Methods for visual understanding
+  of hierarchical system structures.* — the layered graph drawing approach the
+  viewer's deterministic layout follows.
+- Glorot, X., Bengio, Y. (2010). *Understanding the difficulty of training
+  deep feedforward neural networks.* — the vanishing/exploding signal
+  phenomena the ±Z encoding is designed to make visible.
 
 ---
 
